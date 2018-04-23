@@ -1,5 +1,6 @@
 const request = require('request');
 
+// Prints the address info of the given google maps object
 let printAddressInfo = (geocodeData) => {
 	let full_address = geocodeData.results[0].formatted_address;
 	let latitude = geocodeData.results[0].geometry.location.lat;
@@ -10,40 +11,62 @@ let printAddressInfo = (geocodeData) => {
 	console.log('Longitude:', longitude);
 };
 
-let geocodeAddress = (address) => {
+// Print address details from address given to user, via the google maps geocoding api
+let geocodeAddress = (address, callback) => {
+
+	// Format user address for url
 	let encodedAddress = encodeURIComponent(address);
 
+	// Create request to google maps geocoding api
 	request({
-		url: `https://mapgsdfs.googleapis.com/maps/api/geocode/json?address=${encodedAddress}&key=AIzaSyBggJlx-CpvvZDDiCmgjm0cSVW8DTp5ciY`,
+		url: `https://maps.googleapis.com/maps/api/geocode/json?address=${encodedAddress}&key=AIzaSyBggJlx-CpvvZDDiCmgjm0cSVW8DTp5ciY`,
 		json: true,
 	}, (error, response, body) => {
 
+		// if elseif & else chain for error checking
 		if ( error )
 		{
 
-			console.log('Error:', JSON.stringify(error, undefined, 2));
+			callback(`Error: ${JSON.stringify(error, null, 2)}`);
+
+		}  else if ( body.status === 'OK' )
+		{
+
+			callback(null, body);
 
 		} else if ( body.status === 'ZERO_RESULTS' )
 		{
 
-			console.log('Invalid address');
+			callback('Argument(s) Error - Invalid address');
 
-		} else if ( body.status === 'OK' )
+		} else if ( response.statusCode === 404 )
 		{
 
-			printAddressInfo(body);
+			callback('404 Error - Server Timeout');
 
-		} else if ( response.statusCode )
+		} else if ( response.statusCode === 401 )
 		{
 
-			console.log('An unknown error occured');
-			console.log(error);
+			callback('401 Error - Invalid Credentials');
+
+		} else if ( response.statusCode === 502 )
+		{
+
+			callback('502 Error - Invalid Response From Server')
+
+		} else
+		{
+
+			callback('Error - An Unknown Error Occured');
 
 		}
 
 	});
+
 };
 
+// Export function(s) expressions for external use, via an object
 module.exports = {
+	printAddressInfo,
 	geocodeAddress,
 };
